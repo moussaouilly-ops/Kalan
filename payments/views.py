@@ -172,6 +172,47 @@ class PaymentWebhookView(APIView):
             sub.save()
 
 
+class InstructorSalesSummaryView(APIView):
+    """
+    GET /api/v1/payments/my-sales-summary/ — statistiques de ventes du
+    formateur connecté : revenu total, nombre de ventes, détail par cours.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Count, Sum
+        from courses.models import Course
+
+        courses = Course.objects.filter(instructor=request.user)
+        payments = Payment.objects.filter(
+            course__instructor=request.user, status=Payment.Status.SUCCESS,
+        )
+
+        totals = payments.aggregate(total_revenue=Sum("amount"), total_sales=Count("id"))
+        by_course = list(
+            payments.values("course__id", "course__title")
+            .annotate(revenue=Sum("amount"), sales=Count("id"))
+            .order_by("-revenue")
+        )
+
+        return Response({
+            "total_revenue": totals["total_revenue"] or 0,
+            "total_sales": totals["total_sales"] or 0,
+            "total_students": sum(c.total_students for c in courses),
+            "total_courses": courses.count(),
+            "by_course": [
+                {
+                    "course_id": row["course__id"],
+                    "course_title": row["course__title"],
+                    "revenue": row["revenue"],
+                    "sales": row["sales"],
+                }
+                for row in by_course
+            ],
+        })
+
+
 class MyPaymentsView(generics.ListAPIView):
     """GET /api/v1/payments/my-payments/ — historique des paiements de l'étudiant connecté."""
 

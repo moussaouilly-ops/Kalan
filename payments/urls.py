@@ -4,6 +4,7 @@ from django.urls import path
 
 from .views import (
     InitiatePaymentView,
+    InstructorSalesSummaryView,
     MyPaymentsView,
     MyPayoutsView,
     MySubscriptionsView,
@@ -20,4 +21,5 @@ urlpatterns = [
     path("my-payments/", MyPaymentsView.as_view(), name="my-payments"),
     path("my-subscriptions/", MySubscriptionsView.as_view(), name="my-subscriptions"),
     path("my-payouts/", MyPayoutsView.as_view(), name="my-payouts"),
+    path("my-sales-summary/", InstructorSalesSummaryView.as_view(), name="my-sales-summary"),
 ]
