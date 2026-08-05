@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kàlan — Interface connectée à l'API</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5EDDC; --bg-card:#FFFFFF; --ink:#201A12; --ink-soft:#5C543F;
+    --indigo:#22345C; --indigo-dk:#16213E; --gold:#D89B2E; --gold-dk:#A9760F;
+    --clay:#B23A1E; --green:#4C7A3D; --red:#B23A1E; --border:#E4D8B8; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Space Grotesk',sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px;}
+  a{color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+  .pattern{height:6px;background:repeating-linear-gradient(115deg,var(--indigo) 0 10px,var(--gold) 10px 20px,var(--clay) 20px 30px);}
+
+  header.site{background:var(--indigo-dk);color:#fff;}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0;}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;cursor:pointer;}
+  .logo .mark{width:26px;height:26px;border-radius:7px;background:conic-gradient(var(--gold),var(--clay),var(--indigo) 0 0);}
+  .navactions{display:flex;gap:10px;align-items:center;font-size:13px;}
+  .btn{border-radius:10px;padding:9px 16px;font-size:13px;font-weight:500;border:1px solid transparent;background:transparent;}
+  .btn-gold{background:var(--gold);color:var(--indigo-dk);}
+  .btn-ghost{border-color:#4A597C;color:#fff;}
+  .btn-outline{border:1px solid var(--border);color:var(--ink);background:#fff;}
+  .pill{font-size:12px;background:#2C3E63;padding:6px 12px;border-radius:999px;color:#DCE0EA;}
+
+  .status-banner{background:#FBEFC9;border-bottom:1px solid var(--gold);padding:8px 0;font-size:12px;color:#5C4A12;display:none;}
+  .status-banner.show{display:block;}
+  .status-banner.error{background:#F6DAD1;border-color:var(--clay);color:#6E2113;}
+
+  section{padding:28px 0;}
+  h1{font-size:28px;margin:0 0 6px;}
+  h2.section-title{font-size:19px;margin:26px 0 4px;}
+  p.sub{color:var(--ink-soft);font-size:13px;margin:0 0 18px;}
+
+  .cat-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .cat-pill{background:#fff;border:1px solid var(--border);border-radius:999px;padding:7px 14px;font-size:12px;color:var(--ink-soft);}
+  .cat-pill.active{background:var(--indigo-dk);color:#fff;border-color:var(--indigo-dk);}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;}
+  .card:hover{border-color:var(--indigo);}
+  .thumb{height:100px;}
+  .cbody{padding:14px;}
+  .ccat{font-size:11px;color:var(--indigo);text-transform:uppercase;font-weight:500;}
+  .ctitle{font-size:14px;font-weight:500;margin:6px 0;line-height:1.3;}
+  .cinstr{font-size:12px;color:var(--ink-soft);}
+  .price-row{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:14px;}
+  .rating{font-size:11px;color:var(--gold-dk);}
+
+  .empty{padding:30px;text-align:center;color:var(--ink-soft);font-size:13px;background:#fff;border:1px dashed var(--border);border-radius:var(--radius);}
+
+  /* Modal auth */
+  .overlay{position:fixed;inset:0;background:rgba(22,33,62,.55);display:none;align-items:center;justify-content:center;z-index:50;}
+  .overlay.show{display:flex;}
+  .modal{background:#fff;border-radius:16px;padding:28px;width:100%;max-width:380px;}
+  .modal h3{margin:0 0 4px;font-size:19px;}
+  .modal p{margin:0 0 18px;font-size:12px;color:var(--ink-soft);}
+  .field{margin-bottom:12px;}
+  .field label{display:block;font-size:12px;margin-bottom:5px;color:var(--ink-soft);}
+  .field input,.field select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;}
+  .modal-switch{font-size:12px;color:var(--ink-soft);text-align:center;margin-top:14px;}
+  .modal-switch a{color:var(--indigo);cursor:pointer;font-weight:500;}
+  .modal-error{background:#F6DAD1;color:#6E2113;font-size:12px;padding:8px 10px;border-radius:8px;margin-bottom:12px;display:none;}
+  .modal-error.show{display:block;}
+  .close-x{position:absolute;top:16px;right:20px;background:none;border:none;font-size:18px;color:var(--ink-soft);}
+  .modal{position:relative;}
+
+  /* Fiche cours */
+  #view-course{display:none;}
+  .course-hero{background:var(--indigo-dk);color:#fff;padding:30px 0;}
+  .breadcrumb{font-size:12px;color:#AEB6CC;cursor:pointer;margin-bottom:10px;}
+  .layout{display:grid;grid-template-columns:1fr 300px;gap:28px;padding:26px 0;}
+  .chapter{border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden;background:#fff;}
+  .chapter-head{padding:12px 14px;font-size:13px;font-weight:500;display:flex;justify-content:space-between;}
+  .lesson{padding:8px 14px 8px 26px;font-size:12px;color:var(--ink-soft);border-top:1px solid var(--border);}
+  .buy-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:18px;height:fit-content;}
+  .buy-price{font-size:24px;font-family:'IBM Plex Mono',monospace;font-weight:500;}
+  .pay-msg{font-size:12px;padding:10px;border-radius:8px;margin-top:10px;}
+  .pay-msg.ok{background:#E6EEE0;color:var(--green);}
+  .pay-msg.err{background:#F6DAD1;color:#6E2113;}
+
+  /* Dashboard */
+  #view-dashboard{display:none;}
+  .dash-list{display:flex;flex-direction:column;gap:10px;}
+  .dash-item{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;}
+  .mini-progress{height:5px;width:140px;background:var(--border);border-radius:3px;margin-top:6px;overflow:hidden;}
+  .mini-progress i{display:block;height:100%;background:var(--clay);}
+
+  #view-home{display:block;}
+  .spinner{font-size:12px;color:var(--ink-soft);padding:20px;text-align:center;}
+
+  @media(max-width:820px){ .grid{grid-template-columns:repeat(2,1fr);} .layout{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav">
+    <div class="logo" id="logo-home"><span class="mark"></span> Kàlan</div>
+    <div class="navactions" id="nav-actions">
+      <span class="pill">Connexion à l'API…</span>
+    </div>
+  </div>
+</header>
+<div class="pattern"></div>
+<div class="status-banner" id="banner"></div>
+
+<!-- ===== ACCUEIL / CATALOGUE ===== -->
+<div id="view-home">
+  <div class="wrap">
+    <section>
+      <h1>Catalogue de cours</h1>
+      <p class="sub">Ces données viennent en direct de l'API Django — pas d'exemples codés en dur.</p>
+      <div class="cat-row" id="cat-row"><span class="spinner">Chargement des catégories…</span></div>
+      <div class="grid" id="course-grid"><span class="spinner">Chargement des cours…</span></div>
+    </section>
+  </div>
+</div>
+
+<!-- ===== FICHE COURS ===== -->
+<div id="view-course">
+  <div class="course-hero">
+    <div class="wrap">
+      <div class="breadcrumb" id="back-to-catalogue">← Retour au catalogue</div>
+      <h1 id="course-title" style="color:#fff;">—</h1>
+      <p id="course-subtitle" style="color:#C9CFDE;font-size:13px;"></p>
+    </div>
+  </div>
+  <div class="wrap layout">
+    <div>
+      <h2 class="section-title" style="margin-top:0;">Programme</h2>
+      <div id="course-chapters"><span class="spinner">Chargement…</span></div>
+    </div>
+    <div class="buy-card">
+      <div class="buy-price" id="course-price">—</div>
+      <div class="provider-row" id="provider-row" style="margin-top:14px;">
+        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:8px;">Payer avec :</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button class="btn btn-outline provider-btn" data-provider="orange_money">Orange Money</button>
+          <button class="btn btn-outline provider-btn" data-provider="moov_money">Moov Money</button>
+          <button class="btn btn-outline provider-btn" data-provider="wave">Wave</button>
+          <button class="btn btn-outline provider-btn" data-provider="coris_money">Coris Money</button>
+        </div>
+      </div>
+      <div id="pay-result"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TABLEAU DE BORD ===== -->
+<div id="view-dashboard">
+  <div class="wrap">
+    <section>
+      <h1>Mon espace</h1>
+      <p class="sub">Cours auxquels je suis inscrit(e), récupérés depuis <code>/api/v1/courses/enrollments/</code>.</p>
+      <div class="dash-list" id="enrollment-list"><span class="spinner">Chargement…</span></div>
+    </section>
+  </div>
+</div>
+
+<!-- ===== MODAL AUTH ===== -->
+<div class="overlay" id="auth-overlay">
+  <div class="modal">
+    <button class="close-x" id="modal-close">✕</button>
+
+    <div id="login-panel">
+      <h3>Connexion</h3>
+      <p>Utilise un compte existant, ou crée-en un.</p>
+      <div class="modal-error" id="login-error"></div>
+      <div class="field"><label>E-mail</label><input type="email" id="login-email"></div>
+      <div class="field"><label>Mot de passe</label><input type="password" id="login-password"></div>
+      <button class="btn btn-gold" style="width:100%;" id="login-submit">Se connecter</button>
+      <div class="modal-switch">Pas de compte ? <a id="show-register">Créer un compte</a></div>
+    </div>
+
+    <div id="register-panel" style="display:none;">
+      <h3>Créer un compte</h3>
+      <p>Choisis ton rôle sur la plateforme.</p>
+      <div class="modal-error" id="register-error"></div>
+      <div class="field"><label>Prénom</label><input type="text" id="reg-first-name"></div>
+      <div class="field"><label>E-mail</label><input type="email" id="reg-email"></div>
+      <div class="field"><label>Mot de passe</label><input type="password" id="reg-password"></div>
+      <div class="field">
+        <label>Je suis…</label>
+        <select id="reg-role">
+          <option value="student">Étudiant</option>
+          <option value="instructor">Formateur</option>
+        </select>
+      </div>
+      <button class="btn btn-gold" style="width:100%;" id="register-submit">Créer mon compte</button>
+      <div class="modal-switch">Déjà inscrit(e) ? <a id="show-login">Se connecter</a></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000/api/v1";
+
+// État en mémoire uniquement (pas de stockage persistant navigateur).
+let state = { access: null, refresh: null, user: null };
+let categoriesCache = [];
+let selectedCategory = null;
+
+function showBanner(msg, isError=false){
+  const b = document.getElementById('banner');
+  b.textContent = msg;
+  b.className = 'status-banner show' + (isError ? ' error' : '');
+}
+function hideBanner(){ document.getElementById('banner').classList.remove('show'); }
+
+async function api(path, options={}){
+  const headers = options.headers || {};
+  headers['Content-Type'] = 'application/json';
+  if(state.access) headers['Authorization'] = 'Bearer ' + state.access;
+  const res = await fetch(API_BASE + path, {...options, headers});
+  if(res.status === 204) return null;
+  let data;
+  try{ data = await res.json(); } catch(e){ data = null; }
+  if(!res.ok){ const err = new Error('api_error'); err.data = data; err.status = res.status; throw err; }
+  return data;
+}
+
+function renderNav(){
+  const el = document.getElementById('nav-actions');
+  if(state.user){
+    el.innerHTML = `
+      <span class="pill">${state.user.first_name || state.user.email} · ${state.user.role === 'instructor' ? 'Formateur' : 'Étudiant'}</span>
+      <button class="btn btn-ghost" id="nav-dashboard">Mon espace</button>
+      <button class="btn btn-ghost" id="nav-logout">Déconnexion</button>
+    `;
+    document.getElementById('nav-dashboard').onclick = () => showView('dashboard');
+    document.getElementById('nav-logout').onclick = () => { state = {access:null, refresh:null, user:null}; renderNav(); showView('home'); };
+  } else {
+    el.innerHTML = `<button class="btn btn-ghost" id="nav-login">Connexion</button><button class="btn btn-gold" id="nav-register">Inscription</button>`;
+    document.getElementById('nav-login').onclick = () => openAuth('login');
+    document.getElementById('nav-register').onclick = () => openAuth('register');
+  }
+}
+
+function openAuth(panel){
+  document.getElementById('auth-overlay').classList.add('show');
+  document.getElementById('login-panel').style.display = panel === 'login' ? 'block' : 'none';
+  document.getElementById('register-panel').style.display = panel === 'register' ? 'block' : 'none';
+}
+function closeAuth(){ document.getElementById('auth-overlay').classList.remove('show'); }
+
+document.getElementById('modal-close').onclick = closeAuth;
+document.getElementById('show-register').onclick = () => openAuth('register');
+document.getElementById('show-login').onclick = () => openAuth('login');
+
+document.getElementById('login-submit').onclick = async () => {
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+  const errBox = document.getElementById('login-error');
+  errBox.classList.remove('show');
+  try{
+    const data = await api('/auth/login/', {method:'POST', body: JSON.stringify({email, password})});
+    state.access = data.access; state.refresh = data.refresh;
+    const me = await api('/auth/me/');
+    state.user = me;
+    renderNav(); closeAuth(); showView('home');
+  }catch(e){
+    errBox.textContent = "E-mail ou mot de passe incorrect.";
+    errBox.classList.add('show');
+  }
+};
+
+document.getElementById('register-submit').onclick = async () => {
+  const body = {
+    first_name: document.getElementById('reg-first-name').value,
+    email: document.getElementById('reg-email').value,
+    password: document.getElementById('reg-password').value,
+    password_confirm: document.getElementById('reg-password').value,
+    role: document.getElementById('reg-role').value,
+  };
+  const errBox = document.getElementById('register-error');
+  errBox.classList.remove('show');
+  try{
+    const data = await api('/auth/register/', {method:'POST', body: JSON.stringify(body)});
+    state.access = data.access; state.refresh = data.refresh; state.user = data.user;
+    renderNav(); closeAuth(); showView('home');
+  }catch(e){
+    const msg = e.data ? Object.values(e.data).flat().join(' ') : "Erreur lors de l'inscription.";
+    errBox.textContent = msg;
+    errBox.classList.add('show');
+  }
+};
+
+function showView(name){
+  document.getElementById('view-home').style.display = name==='home' ? 'block' : 'none';
+  document.getElementById('view-course').style.display = name==='course' ? 'block' : 'none';
+  document.getElementById('view-dashboard').style.display = name==='dashboard' ? 'block' : 'none';
+  window.scrollTo(0,0);
+  if(name==='dashboard') loadDashboard();
+}
+document.getElementById('logo-home').onclick = () => showView('home');
+document.getElementById('back-to-catalogue').onclick = () => showView('home');
+
+async function loadCategories(){
+  try{
+    const data = await api('/courses/categories/');
+    categoriesCache = data.results || data;
+    const row = document.getElementById('cat-row');
+    row.innerHTML = `<span class="cat-pill active" data-id="">Toutes</span>` +
+      categoriesCache.map(c => `<span class="cat-pill" data-id="${c.id}">${c.name} (${c.course_count})</span>`).join('');
+    row.querySelectorAll('.cat-pill').forEach(pill => {
+      pill.onclick = () => {
+        row.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        selectedCategory = pill.dataset.id || null;
+        loadCourses();
+      };
+    });
+  }catch(e){
+    document.getElementById('cat-row').innerHTML = '';
+  }
+}
+
+async function loadCourses(){
+  const grid = document.getElementById('course-grid');
+  grid.innerHTML = '<span class="spinner">Chargement des cours…</span>';
+  try{
+    let path = '/courses/courses/';
+    if(selectedCategory) path += '?category=' + selectedCategory;
+    const data = await api(path);
+    const courses = data.results || data;
+    if(!courses.length){
+      grid.innerHTML = '<div class="empty">Aucun cours publié pour le moment. Connecte-toi comme formateur pour en créer un via l\'admin Django.</div>';
+      return;
+    }
+    grid.innerHTML = courses.map(c => `
+      <div class="card" data-slug="${c.slug}">
+        <div class="thumb" style="background:linear-gradient(135deg,var(--indigo),var(--gold));"></div>
+        <div class="cbody">
+          <div class="ccat">${c.category_name || 'Sans catégorie'}</div>
+          <div class="ctitle">${c.title}</div>
+          <div class="cinstr">Par ${c.instructor_name || '—'}</div>
+          <div class="rating">★ ${c.average_rating || '—'} (${c.total_reviews} avis)</div>
+          <div class="price-row">
+            <span>${c.pricing_model === 'free' ? 'Gratuit' : (c.effective_price + ' FCFA')}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    grid.querySelectorAll('.card').forEach(card => {
+      card.onclick = () => loadCourseDetail(card.dataset.slug);
+    });
+  }catch(e){
+    grid.innerHTML = '<div class="empty">Impossible de contacter l\'API. Vérifie que <code>python manage.py runserver</code> tourne bien sur le port 8000.</div>';
+  }
+}
+
+async function loadCourseDetail(slug){
+  showView('course');
+  document.getElementById('course-title').textContent = '—';
+  document.getElementById('course-chapters').innerHTML = '<span class="spinner">Chargement…</span>';
+  document.getElementById('pay-result').innerHTML = '';
+  try{
+    const c = await api('/courses/courses/' + slug + '/');
+    document.getElementById('course-title').textContent = c.title;
+    document.getElementById('course-subtitle').textContent = c.subtitle || '';
+    document.getElementById('course-price').textContent = c.pricing_model === 'free' ? 'Gratuit' : (c.effective_price + ' FCFA');
+    const chapters = c.chapters || [];
+    document.getElementById('course-chapters').innerHTML = chapters.length ? chapters.map(ch => `
+      <div class="chapter">
+        <div class="chapter-head">${ch.title}</div>
+        ${(ch.lessons||[]).map(l => `<div class="lesson">${l.is_preview ? '🔓' : '▶'} ${l.title}</div>`).join('')}
+      </div>
+    `).join('') : '<div class="empty">Programme non encore renseigné pour ce cours.</div>';
+
+    document.querySelectorAll('.provider-btn').forEach(btn => {
+      btn.onclick = async () => {
+        if(!state.user){ openAuth('login'); return; }
+        const resultBox = document.getElementById('pay-result');
+        resultBox.innerHTML = `<div class="pay-msg ok">Préparation du paiement ${btn.textContent}…</div>`;
+        try{
+          const payment = await api('/payments/initiate/', {method:'POST', body: JSON.stringify({
+            purpose: 'course_purchase', provider: btn.dataset.provider, course: c.id,
+          })});
+          if(payment.checkout_url){
+            resultBox.innerHTML = `<div class="pay-msg ok">Redirection vers la page de paiement…</div>`;
+            window.location.href = payment.checkout_url;
+          } else {
+            resultBox.innerHTML = `<div class="pay-msg ok">Paiement initié (réf. ${payment.reference}) — en attente de confirmation de l'opérateur.</div>`;
+          }
+        }catch(e){
+          const msg = e.data ? (e.data.detail || Object.values(e.data).flat().join(' ')) : "Erreur lors de l'initiation du paiement.";
+          resultBox.innerHTML = `<div class="pay-msg err">${msg}</div>`;
+        }
+      };
+    });
+  }catch(e){
+    document.getElementById('course-chapters').innerHTML = '<div class="empty">Cours introuvable.</div>';
+  }
+}
+
+async function loadDashboard(){
+  const list = document.getElementById('enrollment-list');
+  if(!state.user){ list.innerHTML = '<div class="empty">Connecte-toi pour voir tes cours.</div>'; return; }
+  list.innerHTML = '<span class="spinner">Chargement…</span>';
+  try{
+    const data = await api('/courses/enrollments/');
+    const enrollments = data.results || data;
+    list.innerHTML = enrollments.length ? enrollments.map(en => `
+      <div class="dash-item">
+        <div>
+          <div class="ctitle" style="margin:0;">${en.course_detail.title}</div>
+          <div class="mini-progress"><i style="width:${en.progress_percent}%;"></i></div>
+        </div>
+        <span class="rating">${en.progress_percent}%</span>
+      </div>
+    `).join('') : '<div class="empty">Aucune inscription pour l\'instant — explore le catalogue.</div>';
+  }catch(e){
+    list.innerHTML = '<div class="empty">Impossible de charger tes inscriptions.</div>';
+  }
+}
+
+async function checkApiConnection(){
+  try{
+    await api('/courses/categories/');
+    hideBanner();
+  }catch(e){
+    showBanner("⚠️ Impossible de joindre l'API sur " + API_BASE + " — lance `python manage.py runserver` dans ton projet Django.", true);
+  }
+}
+
+renderNav();
+checkApiConnection();
+loadCategories();
+loadCourses();
+showView('home');
+</script>
+</body>
+</html>
