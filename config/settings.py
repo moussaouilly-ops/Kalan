@@ -57,6 +57,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -89,10 +90,21 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Base de données
 # Par défaut : SQLite, pour démarrer sans rien installer (fichier db.sqlite3
 # créé automatiquement à côté de manage.py).
-# Pour passer sur PostgreSQL (recommandé avant la mise en ligne réelle),
-# mettre USE_POSTGRES=True dans le fichier .env et renseigner les DB_*.
+# Sur Render (ou tout hébergeur qui fournit DATABASE_URL), la base
+# PostgreSQL liée est détectée et utilisée automatiquement — rien à
+# configurer manuellement une fois déployé.
+# En local, mettre USE_POSTGRES=True dans .env pour tester avec PostgreSQL.
 # ---------------------------------------------------------------------------
-if os.environ.get("USE_POSTGRES", "False") == "True":
+if os.environ.get("DATABASE_URL"):
+    import dj_database_url
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=os.environ["DATABASE_URL"],
+            conn_max_age=600,
+            ssl_require=os.environ["DATABASE_URL"].startswith("postgres"),
+        )
+    }
+elif os.environ.get("USE_POSTGRES", "False") == "True":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -134,6 +146,11 @@ USE_TZ = True
 # ---------------------------------------------------------------------------
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -180,13 +197,13 @@ SIMPLE_JWT = {
 }
 
 # ---------------------------------------------------------------------------
-# CORS — en développement (DEBUG=True), on autorise toutes les origines pour
-# simplifier les tests locaux (ex: ouvrir un fichier HTML statique en
-# file://, ou tester depuis un port différent). En production, retirer
-# CORS_ALLOW_ALL_ORIGINS et ne garder que CORS_ALLOWED_ORIGINS ci-dessous.
+# CORS — autorise toutes les origines tant que le frontend n'a pas encore
+# d'adresse fixe (pratique en développement ET pendant les premiers essais
+# en production). Une fois le frontend hébergé à une adresse stable, mettre
+# CORS_ALLOW_ALL=False dans .env et renseigner CORS_ALLOWED_ORIGINS avec
+# cette adresse précise, pour plus de sécurité.
 # ---------------------------------------------------------------------------
-if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = os.environ.get("CORS_ALLOW_ALL", "True") == "True"
 CORS_ALLOWED_ORIGINS = os.environ.get(
     "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173"
 ).split(",")
@@ -242,3 +259,17 @@ EMAIL_BACKEND = os.environ.get(
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "no-reply@example.com")
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+
+# ---------------------------------------------------------------------------
+# Sécurité HTTPS — activée automatiquement en production (DEBUG=False).
+# Render (et la plupart des hébergeurs) place l'app derrière un proxy HTTPS ;
+# cet en-tête indique à Django de faire confiance à ce proxy pour savoir que
+# la connexion d'origine était bien sécurisée.
+# ---------------------------------------------------------------------------
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 7  # 1 semaine pour commencer
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True

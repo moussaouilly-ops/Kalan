@@ -4,6 +4,7 @@ djangorestframework-simplejwt==5.3.1
 django-filter==24.3
 django-cors-headers==4.4.0
 psycopg[binary]==3.2.3
+dj-database-url==2.3.0
 requests==2.32.3
 Pillow==10.4.0
 python-decouple==3.8
